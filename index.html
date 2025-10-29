@@ -121,8 +121,7 @@
 
                 <div id="uploadTopicBtn" class="flex flex-col items-center cursor-pointer p-3 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 transition duration-150" onclick="document.getElementById('customFileUpload').click()">
                     <svg class="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 014 4v1H8a2 2 0 000 4h12V13" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
-                        <path d="M12 10v6m-3-3l3-3 3 3" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0l-4 4m4-4v14" />
                     </svg>
                     <span id="uploadText" class="text-xs font-semibold whitespace-nowrap mt-1">Upload Topic</span>
                 </div>
@@ -1048,7 +1047,7 @@
 
             // Set up Step 5 listeners
             getElement('step-5-back-to-prev').addEventListener('click', () => showStep(4));
-            // FIX: "Finish & Restart" button logic
+            // FIX: Changed text and moved to the right (via justify-between)
             getElement('step-5-back-to-start').addEventListener('click', () => {
                 location.reload(); // Simplest way to restart the prototype state
             });
