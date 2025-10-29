@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PELE - Personalized English Learning Experience</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f9fc;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 2rem 1rem;
+        }
+        .app-container {
+            background-color: #ffffff;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            max-width: 4xl;
+            width: 100%;
+            border-radius: 1rem;
+            padding: 2rem 1.5rem;
+        }
+
+        /* --- Step 1/2 Styling (UPDATED from prot_2) --- */
+        .card-topic, .card-format {
+            cursor: pointer;
+            transition: all 0.3s ease-in-out;
+            user-select: none;
+            border: 3px solid transparent;
+            background-color: #ffffff;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            position: relative; 
+        }
+        .card-topic:hover, .card-format:hover {
+            transform: scale(1.03); 
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        }
+        .selected {
+            border-color: #4f46e5; /* Indigo-600 */
+            background-color: #eef2ff; /* Indigo-50 */
+            transform: scale(1.03);
+            box-shadow: 0 0 0 4px #c7d2fe; /* Light ring for selection */
+        }
+        
+        /* New Rank Badge Style (from prot_2) */
+        .rank-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background-color: #4f46e5;
+            color: white;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            z-index: 10;
+        }
+        
+        /* --- Step 3 Styling (Slider - Original prot_1_5 styles kept) --- */
+        .cefr-range-container { position: relative; width: 100%; padding: 3rem 0; }
+        .cefr-range { -webkit-appearance: none; appearance: none; width: 100%; height: 10px; background: linear-gradient(to right, #a7f3d0, #10b981, #1e3a8a); border-radius: 5px; cursor: pointer; }
+        .cefr-range::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 28px; height: 28px; background: #ffffff; border: 4px solid #4f46e5; border-radius: 50%; cursor: grab; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); }
+        .cefr-label { width: 40px; text-align: center; font-weight: 700; color: #4f46e5; font-size: 1.25rem; transform: translateX(-50%); position: absolute; top: 0; }
+        /* FIX: Ensure description content closes smoothly */
+        .description-content { transition: max-height 0.4s ease-out, opacity 0.4s ease-out; overflow: hidden; max-height: 0; opacity: 0; } 
+        .description-content.open { max-height: 500px; opacity: 1; }
+
+        /* --- Step 4/Assignment Styling (Modified for color and title) --- */
+        .assignment-block { 
+            border-left: 5px solid; 
+            padding: 1.5rem; 
+            margin-bottom: 2rem; 
+            border-radius: 0.5rem; 
+            background-color: #fff; 
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); 
+        }
+        
+        /* Step 4: NEW Sidebar Colors based on order */
+        .block-order-1 { border-color: #f59e0b; background-color: #fffbeb; } /* Orange */
+        .block-order-2 { border-color: #10b981; background-color: #ecfdf5; } /* Green */
+        .block-order-3 { border-color: #4f46e5; background-color: #eef2ff; } /* Blue */
+        
+        .input-style { width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 0.5rem; resize: vertical; font-size: 1rem; transition: all 0.2s; }
+        .input-style:focus { border-color: #4f46e5; box-shadow: 0 0 0 3px #c7d2fe; outline: none; }
+        .grammar-blank { display: inline-block; min-width: 100px; max-width: 150px; border-bottom: 2px solid #374151; margin: 0 0.5rem; text-align: center; font-weight: 500; }
+        
+        .grammar-input {
+            border: 1px solid #ccc;
+            padding: 4px 6px;
+            border-radius: 4px;
+            text-align: center;
+            font-weight: 600;
+            color: #1e40af;
+            width: 100%;
+        }
+
+        /* --- Loading Screen Styling (Original prot_1_5 styles kept) --- */
+        .spinner { border: 4px solid rgba(0, 0, 0, 0.1); border-left-color: #4f46e5; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <div id="app-container" class="app-container">
+
+        <div id="step-1" class="current-step">
+            
+            <div class="mb-6 flex justify-between items-start border-b pb-4 border-gray-200">
+                <div>
+                    <h2 class="text-3xl font-bold text-gray-900">Step 1: Topic Selection</h2>
+                    <p class="text-lg text-gray-600 mt-1">Select **1–3 topics** below. The order of selection determines priority!</p>
+                </div>
+
+                <div id="uploadTopicBtn" class="flex flex-col items-center cursor-pointer p-2 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 transition duration-150" onclick="document.getElementById('customFileUpload').click()">
+                    <div class="p-2 bg-white border border-gray-300 rounded-full shadow-md">
+                        <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 014 4v1H8a2 2 0 000 4h12V13" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                            <path d="M12 10v6m-3-3l3-3 3 3" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                        </svg>
+                    </div>
+                    <span id="uploadText" class="text-xs font-semibold whitespace-nowrap mt-1">Upload Topic</span>
+                </div>
+            </div>
+
+            <input type="file" id="customFileUpload" class="hidden" accept=".pdf,.docx,.txt">
+            
+            <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 mb-6">
+                <input type="text" id="topic-search" placeholder="Search topics..." 
+                       class="flex-grow p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 shadow-sm">
+                
+                <select id="filterSelect" 
+                        class="p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 shadow-sm w-full sm:w-auto">
+                    <option value="all">All Topics</option>
+                    <option value="science">Science</option>
+                    <option value="history">History</option>
+                    <option value="literature">Literature</option>
+                    <option value="technology">Technology</option>
+                </select>
+            </div>
+
+            <div id="cardSelectionTitle" class="text-sm font-medium text-gray-600 mb-4 transition-all duration-300">
+                Selected Topics (Priority Order): <span id="selectedTopicsDisplay" class="font-bold text-indigo-600">None</span>
+            </div>
+
+            <div id="topic-cards-container" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                </div>
+            
+            <footer class="mt-12 pt-6 border-t border-gray-200 flex justify-end">
+                <button id="step-1-next" disabled class="bg-indigo-400 text-white px-8 py-3 rounded-full font-bold text-lg transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-indigo-600">
+                    Next: Assignment Type →
+                </button>
+            </footer>
+        </div>
+
+        <div id="step-2" class="hidden">
+            <header class="text-left w-full mb-8 border-b pb-4 border-gray-200">
+                <h1 class="text-3xl font-bold text-gray-900 tracking-tight">
+                    Step 2: Select Assignment Format
+                </h1>
+                <p class="text-lg text-gray-600 mt-2">
+                    Choose **1-3** language task formats. The order of selection determines priority!
+                </p>
+            </header>
+
+            <div id="format-cards-container" class="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                </div>
+
+            <div class="mt-8 p-4 bg-gray-100 rounded-lg shadow-inner">
+                <p class="text-md font-semibold text-gray-700">Selected Types (Priority Order):</p>
+                <p id="selected-assignments-display" class="mt-1 text-sm text-gray-500 italic">None</p>
+            </div>
+
+            <footer class="mt-12 pt-6 border-t border-gray-200 flex justify-between">
+                <button id="step-2-back" class="bg-gray-200 text-gray-700 px-6 py-3 rounded-full font-bold text-lg transition duration-300 hover:bg-gray-300">
+                    ← Back to Topic
+                </button>
+                <button id="step-2-next" disabled class="bg-indigo-400 text-white px-8 py-3 rounded-full font-bold text-lg transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-indigo-600">
+                    Next: Difficulty Level →
+                </button>
+            </footer>
+        </div>
+
+        <div id="step-3" class="hidden">
+            <header class="text-center mb-10">
+                <h1 class="text-3xl font-extrabold text-gray-900 tracking-tight">Personalized English Learning Experience (PELE)</h1>
+                <p class="text-xl font-medium text-indigo-600 mt-2">Step 3: Select Difficulty Level (CEFR Tuning)</p>
+                <p class="text-gray-500 mt-1">This level determines the complexity of the generated language and tasks.</p>
+            </header>
+
+            <div class="flex flex-col items-center p-8 bg-white rounded-xl shadow-lg border border-indigo-200">
+                
+                <div class="text-center mb-8">
+                    <p class="text-xl text-gray-600 mb-1">Current Level Selection:</p>
+                    <h2 id="current-level-display" class="text-6xl font-extrabold text-indigo-700">B2</h2>
+                    <p id="current-level-description" class="text-lg text-gray-500 italic mt-2">Can interact with a degree of fluency and spontaneity that makes regular interaction with native speakers quite possible.</p>
+                </div>
+
+                <div class="cefr-range-container w-full max-w-xl">
+                    <input type="range" min="0" max="5" value="3" id="cefr-slider" class="cefr-range">
+                    <div class="flex justify-between absolute w-full bottom-0 text-sm font-medium text-gray-500">
+                        <span style="left: 0%; transform: translateX(-50%); position: absolute;">A1</span>
+                        <span style="left: 20%; transform: translateX(-50%); position: absolute;">A2</span>
+                        <span style="left: 40%; transform: translateX(-50%); position: absolute;">B1</span>
+                        <span style="left: 60%; transform: translateX(-50%); position: absolute;">B2</span>
+                        <span style="left: 80%; transform: translateX(-50%); position: absolute;">C1</span>
+                        <span style="left: 100%; transform: translateX(-50%); position: absolute;">C2</span>
+                    </div>
+                </div>
+
+                <div class="mt-8 w-full max-w-xl">
+                    <div id="description-toggle-header" class="flex justify-between items-center cursor-pointer p-3 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
+                        <span class="font-semibold text-gray-700">CEFR Descriptions</span>
+                        <span id="toggle-icon" class="text-xl text-gray-500">▼</span>
+                    </div>
+                    <div id="cefr-full-description" class="description-content p-4 border border-gray-200 rounded-lg mt-2 bg-white">
+                        </div>
+                </div>
+
+            </div>
+
+            <footer class="mt-12 pt-6 border-t border-gray-200 flex justify-between">
+                <button id="step-3-back" class="bg-gray-200 text-gray-700 px-6 py-3 rounded-full font-bold text-lg transition duration-300 hover:bg-gray-300">
+                    ← Back to Assignments
+                </button>
+                <button id="step-3-next-generate" class="bg-emerald-600 text-white px-8 py-3 rounded-full font-bold text-lg shadow-lg transition duration-300 hover:bg-emerald-700 flex items-center">
+                    Generate My Assignments!
+                </button>
+            </footer>
+        </div>
+
+        <div id="loading-screen" class="hidden text-center p-20 my-20 bg-indigo-50 rounded-xl shadow-lg border border-indigo-200">
+            <div class="spinner mx-auto mb-6"></div>
+            <h2 class="text-3xl font-bold text-indigo-700 mb-2">Generating Assignments...</h2>
+            <p class="text-gray-600">We are consulting the language model based on your criteria. This may take a moment.</p>
+            <p id="loading-message" class="mt-4 text-sm text-gray-500 italic">Constructing prompt and sending to the API.</p>
+        </div>
+
+        <div id="step-4" class="hidden">
+             <header class="text-center mb-10">
+                <h1 class="text-3xl font-extrabold text-gray-900 tracking-tight">Personalized English Learning Experience (PELE)</h1>
+                <p id="step-title" class="text-xl font-medium text-indigo-600 mt-2">My Personal Assignment</p>
+                <p class="text-gray-500 mt-1">Topic: <span id="final-topic-display" class="font-semibold text-gray-700"></span> | Level: <span id="final-level-display" class="font-semibold text-gray-700"></span></p>
+            </header>
+
+            <div id="assignments-workspace">
+                </div>
+
+            <div id="no-assignments-message" class="hidden text-center p-10 bg-gray-100 border border-gray-300 rounded-xl">
+                <p class="text-2xl font-bold text-gray-700 mb-2">No Assignments Selected</p>
+                <p class="text-gray-500">Please go back to Step 2 to select an assignment type.</p>
+            </div>
+
+
+            <footer class="mt-12 pt-6 border-t border-gray-200 flex justify-between">
+                <div class="space-x-4">
+                     <button id="step-4-back-to-prev" class="bg-gray-200 text-gray-700 px-6 py-3 rounded-full font-bold text-lg transition duration-300 hover:bg-gray-300">
+                        ← Back to Difficulty
+                    </button>
+                    <button id="step-4-back-to-start" class="bg-gray-200 text-gray-700 px-6 py-3 rounded-full font-bold text-lg transition duration-300 hover:bg-gray-300">
+                        Back to Beginning
+                    </button>
+                </div>
+                <button id="submit-assignments" class="bg-indigo-600 text-white px-8 py-3 rounded-full font-bold text-lg shadow-lg transition duration-300 hover:bg-indigo-700">
+                    Submit Assignments
+                </button>
+            </footer>
+        </div>
+
+        <div id="step-5" class="hidden">
+            <header class="text-center mb-10">
+                <h1 class="text-3xl font-extrabold text-gray-900 tracking-tight">Personalized English Learning Experience (PELE)</h1>
+                <p class="text-xl font-medium text-green-600 mt-2">Assignment Feedback & Results</p>
+                <p class="text-gray-500 mt-1">Topic: <span id="feedback-topic-display" class="font-semibold text-gray-700"></span> | Level: <span id="feedback-level-display" class="font-semibold text-gray-700"></span></p>
+            </header>
+
+            <div id="feedback-content" class="space-y-6">
+                </div>
+
+            <footer class="mt-12 pt-6 border-t border-gray-200 flex justify-between">
+                <button id="step-5-back-to-prev" class="bg-gray-200 text-gray-700 px-6 py-3 rounded-full font-bold text-lg transition duration-300 hover:bg-gray-300">
+                    ← Back to My Assignment
+                </button>
+                <button id="step-5-back-to-start" class="bg-indigo-600 text-white px-8 py-3 rounded-full font-bold text-lg transition duration-300 hover:bg-indigo-700">
+                    Finish & Restart
+                </button>
+            </footer>
+        </div>
+
+    </div>
+
+    <script>
+        // --- GLOBAL STATE MANAGEMENT (Updated from prot_2) ---
+        const PRIORITY_WEIGHTS = {
+            1: [1.0],
+            2: [0.6, 0.4],
+            3: [0.6, 0.3, 0.1]
+        };
+        const RANK_LABELS = ['1', '2', '3'];
+        const ASSIGNMENT_PRIORITY = ['WritingPrompt', 'GrammarPractice', 'VocabularyWords', 'MultipleChoice']; 
+
+        const appState = {
+            currentStep: 1,
+            selectedTopics: [], // Topic IDs in order of selection (e.g., [1, 5])
+            customFile: null,
+            searchInput: '',
+            selectedFormat: [], // Array for multi-select up to 3 (e.g., ['ft1', 'ft3'])
+            cefrLevel: 'B2', 
+            generatedAssignments: [], // Stores the generated prompt/instructions
+            submissionResults: null // Stores the user's answers and grading results
+        };
+
+        // --- DATA STRUCTURES (Updated from prot_2) ---
+
+        const topics = [
+            { id: 1, name: 'AI & ML', icon: '🤖', category: 'technology' },
+            { id: 2, name: 'Climate Change', icon: '🌍', category: 'science' },
+            { id: 3, name: 'Quantum Physics', icon: '⚛️', category: 'science' },
+            { id: 4, name: 'The Roman Empire', icon: '🏛️', category: 'history' },
+            { id: 5, name: 'Shakespeare', icon: '🎭', category: 'literature' },
+            { id: 6, name: 'Biotechnology', icon: '🧬', category: 'science' },
+            { id: 7, name: 'Ancient Egypt', icon: '☥', category: 'history' },
+            { id: 8, name: 'Cybersecurity', icon: '🔒', category: 'technology' },
+            { id: 9, name: 'Poetry Analysis', icon: '📜', category: 'literature' },
+            { id: 10, name: 'World Wars', icon: '⚔️', category: 'history' },
+            { id: 11, name: 'Space Exploration', icon: '🚀', category: 'science' },
+            { id: 12, name: 'Philosophy', icon: '🧠', category: 'literature' },
+            { id: 13, name: 'Renewable Energy', icon: '💡', category: 'technology' },
+            { id: 14, name: 'Economic History', icon: '💰', category: 'history' },
+        ];
+
+        const formats = [
+            { id: 'ft1', name: 'English Text Topic', type: 'WritingPrompt', icon: '📝', description: 'Generates a full prompt for an essay or a short story' },
+            { id: 'ft2', name: 'Grammar Practice', type: 'GrammarPractice', icon: '🧠', description: 'Generates sentences with blanks for conjunction or syntax practice' },
+            { id: 'ft3', name: 'Vocabulary Words', type: 'VocabularyWords', icon: '📚', description: 'Generates new words with context, requiring students to use them in sentences' },
+            { id: 'ft4', name: 'Multiple Choice', type: 'MultipleChoice', icon: '✅', description: 'Generates questions with four potential answers, with only one correct answer' },
+        ];
+        
+        // Helper to map format type to friendly name
+        const formatTypeToName = (type) => formats.find(f => f.type === type)?.name || type;
+
+
+        // Original CEFR_LEVELS structure kept for Step 3 logic
+        const CEFR_LEVELS = [
+            { level: 'A1', name: 'Beginner', description: 'Basic, everyday expressions.' },
+            { level: 'A2', name: 'Elementary', description: 'Simple, routine tasks and direct exchange of information.' },
+            { level: 'B1', name: 'Intermediate', description: 'Can deal with most situations likely to arise whilst travelling.' },
+            { level: 'B2', name: 'Upper-Intermediate', description: 'Can interact with a degree of fluency and spontaneity that makes regular interaction with native speakers quite possible.' },
+            { level: 'C1', name: 'Advanced', description: 'Can express ideas fluently and spontaneously without much obvious searching for expressions.' },
+            { level: 'C2', name: 'Proficiency', description: 'Can understand virtually everything heard or read.' }
+        ];
+
+        // MOCK_ASSIGNMENT_POOL (Expanded with Multiple Choice and more topics for better coverage)
+        const MOCK_ASSIGNMENT_POOL = [
+            // B2 Level Assignments (Expanded for more variety)
+            {
+                assignmentType: 'WritingPrompt', level: 'B2', topicKey: 'Quantum Physics',
+                generatedTitle: 'The Future of Remote Work',
+                promptOrInstructions: 'Write a detailed opinion essay (250 words) discussing the long-term economic and social implications of a widespread shift to remote work.',
+                contentDetail: 'Use advanced vocabulary, complex sentence structures, and rhetorical devices to present a balanced argument.',
+                assignmentID: 'B2-WP-1'
+            },
+            {
+                assignmentType: 'GrammarPractice', level: 'B2', topicKey: 'Cybersecurity',
+                generatedTitle: 'Modal Perfects & Conditionals',
+                promptOrInstructions: 'Complete the sentences using the correct modal perfect (e.g., *should have done*) or third conditional.',
+                contentDetail: [
+                    "If they had checked the security logs, they ___ (discover) the breach earlier.",
+                    "He ___ (submit) the report yesterday, but he was ill.",
+                    "She ___ (not/agree) to the contract terms if she had fully understood the fine print.",
+                    "The company ___ (invest) more heavily in encryption years ago."
+                ].join('\n'),
+                correctAnswers: ["would have discovered", "should have submitted", "would not have agreed", "should have invested"],
+                assignmentID: 'B2-GP-1'
+            },
+            {
+                assignmentType: 'VocabularyWords', level: 'B2', topicKey: 'Biotechnology',
+                generatedTitle: 'Academic Vocabulary for Science',
+                promptOrInstructions: 'Write a paragraph (5-7 sentences) about recent developments in biotechnology using all four of the following words correctly.',
+                contentDetail: [
+                    "1. Paradigm (n): A typical example or pattern.",
+                    "2. Synthesis (n): The combination of components to form a connected whole.",
+                    "3. Alleviate (v): To make suffering, deficiency, or a problem less severe.",
+                    "4. Prevalent (adj): Widespread in a particular area or at a particular time."
+                ].join('\n'),
+                assignmentID: 'B2-VW-1'
+            },
+            {
+                assignmentType: 'MultipleChoice', level: 'B2', topicKey: 'AI & ML',
+                generatedTitle: 'Understanding Machine Learning Terms',
+                promptOrInstructions: 'Choose the most appropriate synonym for the underlined word in the sentence.',
+                contentDetail: [
+                    {
+                        question: "The model was designed to **extrapolate** future trends from current data.",
+                        options: ["A) deduce", "B) conjecture", "C) assume", "D) conclude"],
+                        correct: "B) conjecture"
+                    }
+                ],
+                assignmentID: 'B2-MC-1'
+            },
+            
+            // C1 Level Assignments
+            {
+                assignmentType: 'WritingPrompt', level: 'C1', topicKey: 'Philosophy',
+                generatedTitle: 'The Ethics of Artificial General Intelligence (AGI)',
+                promptOrInstructions: 'Compose a sophisticated argumentative essay (300-400 words) debating whether an Artificial General Intelligence, once created, should be granted legal personhood. Support your position with nuanced philosophical concepts and complex language.',
+                contentDetail: 'Ensure coherence, cohesion, and use of various subordinating conjunctions and introductory phrases.',
+                assignmentID: 'C1-WP-1'
+            },
+            {
+                assignmentType: 'VocabularyWords', level: 'C1', topicKey: 'Economic History',
+                generatedTitle: 'High-Level Economic and Social Lexis',
+                promptOrInstructions: 'Write a concise, formally-toned summary (approx. 150 words) of a recent economic event (e.g., a housing crisis, market crash, or trade agreement) correctly incorporating all four of the following terms.',
+                contentDetail: [
+                    "1. Exacerbate (v): To make a problem, bad situation, or negative feeling worse.",
+                    "2. Subsidize (v): To support (an organization or activity) financially.",
+                    "3. Dichotomy (n): A division or contrast between two things that are or are represented as being opposed or entirely different.",
+                    "4. Austerity (n): Difficult economic conditions created by government measures to reduce public expenditure."
+                ].join('\n'),
+                assignmentID: 'C1-VW-1'
+            },
+            
+            // A2 Level Assignments
+            {
+                assignmentType: 'WritingPrompt', level: 'A2', topicKey: 'Ancient Egypt',
+                generatedTitle: 'A Trip to the Museum',
+                promptOrInstructions: 'Write 5-7 simple sentences about a trip to a museum where you saw artifacts from Ancient Egypt. Use past simple.',
+                contentDetail: 'Focus on using the past simple tense and simple descriptions.',
+                assignmentID: 'A2-WP-1'
+            },
+            {
+                assignmentType: 'GrammarPractice', level: 'A2', topicKey: 'Climate Change',
+                generatedTitle: 'Past Simple Verbs: World Events',
+                promptOrInstructions: 'Complete the sentences about history using the past simple form of the verb in parentheses to fill the blank.',
+                contentDetail: [
+                    "They ___ a famous battle in 1066. (fight)",
+                    "Christopher Columbus ___ America in 1492. (discover)",
+                    "The teacher ___ us a documentary about Ancient Egypt. (show)",
+                    "The scientist ___ the lightbulb in 1879. (invent)"
+                ].join('\n'),
+                correctAnswers: ["fought", "discovered", "showed", "invented"],
+                assignmentID: 'A2-GP-1'
+            },
+        ];
+
+
+        // --- DOM References (Updated for new Step 1/2 IDs) ---
+        const getElement = (id) => document.getElementById(id);
+        const topicContainer = getElement('topic-cards-container');
+        const formatContainer = getElement('format-cards-container');
+        const searchInputEl = getElement('topic-search');
+        const filterSelect = getElement('filterSelect');
+        const selectedTopicsDisplay = getElement('selectedTopicsDisplay');
+        const selectedFormatsDisplay = getElement('selected-assignments-display');
+
+        // =========================================================================================
+        // STEP 1 FUNCTIONS (Topic Selection - From prot_2, adapted for prot_1_5 flow)
+        // =========================================================================================
+
+        function updateSelectedTopicsDisplay() {
+            if (appState.selectedTopics.length === 0) {
+                selectedTopicsDisplay.textContent = 'None';
+            } else {
+                const names = appState.selectedTopics.map(id => {
+                    // Check for custom topics first
+                    let topicName;
+                    if (id === 'custom-file-topic') {
+                        topicName = `Custom File: ${appState.customFile || 'N/A'}`;
+                    } else if (id === 'search-input-topic') {
+                        topicName = `Search Term: ${appState.searchInput || 'N/A'}`;
+                    } else {
+                        const topic = topics.find(t => t.id === id);
+                        topicName = topic ? topic.name : 'Unknown Topic';
+                    }
+                    const rank = appState.selectedTopics.indexOf(id) + 1;
+                    return `#${rank} ${topicName}`;
+                });
+                selectedTopicsDisplay.textContent = names.join(' | ');
+            }
+            updateNextButtonStep1();
+        }
+
+        function handleTopicClick(topicId) {
+            const index = appState.selectedTopics.indexOf(topicId);
+
+            if (index > -1) {
+                // Deselect: remove from the array
+                appState.selectedTopics.splice(index, 1);
+            } else if (appState.selectedTopics.length < 3) {
+                // Select: add to the end
+                appState.selectedTopics.push(topicId);
+            } else {
+                // Max topics reached
+                alert("You can select a maximum of 3 topics.");
+                return;
+            }
+
+            renderTopics(); // Re-render to update selected styles and badges
+            updateSelectedTopicsDisplay();
+        }
+
+        function renderTopicCard(topic, isSelected, rank) {
+            const rankBadge = isSelected ? `<div class="rank-badge">${rank}</div>` : '';
+            const isCustom = topic.id === 'custom-file-topic' || topic.id === 'search-input-topic';
+
+            return `
+                <div id="topic-${topic.id}" data-topic-id="${topic.id}" data-category="${topic.category}"
+                    class="card-topic p-4 sm:p-6 rounded-xl text-center shadow-md ${isSelected ? 'selected' : ''}"
+                    onclick="handleTopicClick(${isCustom ? `'${topic.id}'` : topic.id})">
+                    ${rankBadge}
+                    <div class="text-3xl sm:text-4xl mb-2">${topic.icon}</div>
+                    <p class="text-md sm:text-lg font-semibold text-gray-800">${topic.name}</p>
+                    <p class="text-xs text-gray-500 mt-1">${topic.category ? topic.category.toUpperCase() : 'CUSTOM'}</p>
+                </div>
+            `;
+        }
+
+        function renderTopics() {
+            const currentTopics = [...topics];
+            
+            // Add custom topics if state dictates
+            if (appState.customFile && appState.selectedTopics.includes('custom-file-topic')) {
+                currentTopics.unshift({ 
+                    id: 'custom-file-topic', 
+                    name: `File: ${appState.customFile}`, 
+                    icon: '📄', 
+                    category: '' 
+                });
+            }
+            if (appState.searchInput && appState.selectedTopics.includes('search-input-topic')) {
+                 currentTopics.unshift({ 
+                    id: 'search-input-topic', 
+                    name: `Search: ${appState.searchInput}`, 
+                    icon: '🔍', 
+                    category: '' 
+                });
+            }
+            
+            // Filter
+            const filterValue = filterSelect.value;
+            const searchValue = searchInputEl.value.toLowerCase().trim();
+            
+            const filteredTopics = currentTopics.filter(topic => {
+                const matchesFilter = filterValue === 'all' || topic.category.toLowerCase() === filterValue;
+                const matchesSearch = searchValue === '' || 
+                                      topic.name.toLowerCase().includes(searchValue) ||
+                                      topic.category.toLowerCase().includes(searchValue);
+                
+                // If it's a dynamic custom topic, ensure it's displayed if active, ignoring search/filter for now
+                if (topic.id === 'custom-file-topic' || topic.id === 'search-input-topic') return true;
+                                      
+                return matchesFilter && matchesSearch;
+            });
+
+            topicContainer.innerHTML = filteredTopics.map(topic => {
+                const topicId = topic.id;
+                const index = appState.selectedTopics.indexOf(topicId);
+                const isSelected = index > -1;
+                const rank = isSelected ? index + 1 : null;
+                return renderTopicCard(topic, isSelected, rank);
+            }).join('');
+        }
+        
+        function handleCustomFile(event) {
+            const file = event.target.files[0];
+            const uploadTextEl = getElement('uploadText');
+            
+            // Clear any existing custom/search topics to ensure file is primary (simplification)
+            appState.selectedTopics = appState.selectedTopics.filter(id => id !== 'custom-file-topic' && id !== 'search-input-topic');
+
+            if (file) {
+                appState.customFile = file.name;
+                uploadTextEl.textContent = 'File Ready';
+                
+                // Add to selection and ensure it's the highest priority for the mock
+                appState.selectedTopics.unshift('custom-file-topic');
+                appState.selectedTopics = appState.selectedTopics.slice(0, 3); // Trim to max 3
+            } else {
+                appState.customFile = null;
+                uploadTextEl.textContent = 'Upload Topic';
+            }
+
+            renderTopics();
+            updateSelectedTopicsDisplay();
+        }
+
+        function handleSearchInput(value) {
+            appState.searchInput = value.trim();
+            
+            // For the prototype, we don't automatically select the search term. User must click on the generated card.
+            // The logic here remains simple: update the topic list and re-render.
+            renderTopics();
+        }
+
+        function updateNextButtonStep1() {
+            const nextButton = getElement('step-1-next');
+            const canProceed = appState.selectedTopics.length > 0;
+            nextButton.disabled = !canProceed;
+            nextButton.classList.toggle('disabled:opacity-50', !canProceed);
+            nextButton.classList.toggle('disabled:cursor-not-allowed', !canProceed);
+        }
+
+        // =========================================================================================
+        // STEP 2 FUNCTIONS (Assignment Format - From prot_2, adapted for prot_1_5 flow)
+        // =========================================================================================
+
+        function updateSelectedFormatsDisplay() {
+            if (appState.selectedFormat.length === 0) {
+                selectedFormatsDisplay.textContent = 'None';
+            } else {
+                const names = appState.selectedFormat.map(id => {
+                    const format = formats.find(f => f.id === id);
+                    const rank = appState.selectedFormat.indexOf(id) + 1;
+                    return `#${rank} ${format ? format.name : 'Unknown'}`;
+                });
+                selectedFormatsDisplay.textContent = names.join(' | ');
+            }
+            updateNextButtonStep2();
+        }
+
+        function handleFormatClick(formatId) {
+            const index = appState.selectedFormat.indexOf(formatId);
+
+            if (index > -1) {
+                // Deselect: remove from the array
+                appState.selectedFormat.splice(index, 1);
+            } else if (appState.selectedFormat.length < 3) {
+                // Select: add to the end (max 3 allowed)
+                appState.selectedFormat.push(formatId);
+            } else {
+                // Max formats reached
+                alert("You can select a maximum of 3 assignment formats.");
+                return;
+            }
+
+            renderFormats(); // Re-render to update selected styles and badges
+            updateSelectedFormatsDisplay();
+        }
+
+        function renderFormatCard(format, isSelected, rank) {
+            const rankBadge = isSelected ? `<div class="rank-badge">${rank}</div>` : '';
+            return `
+                <div id="format-${format.id}" data-format-id="${format.id}"
+                    class="card-format p-4 sm:p-6 rounded-xl text-center shadow-md min-h-[200px] flex flex-col justify-center items-center ${isSelected ? 'selected' : ''}"
+                    onclick="handleFormatClick('${format.id}')">
+                    ${rankBadge}
+                    <div class="text-3xl sm:text-4xl mb-3">${format.icon}</div>
+                    <p class="text-lg font-semibold text-gray-800">${format.name}</p>
+                    <p class="text-sm text-gray-500 mt-2">${format.description}</p>
+                </div>
+            `;
+        }
+
+        function renderFormats() {
+            formatContainer.innerHTML = formats.map(format => {
+                const index = appState.selectedFormat.indexOf(format.id);
+                const isSelected = index > -1;
+                const rank = isSelected ? index + 1 : null;
+                return renderFormatCard(format, isSelected, rank);
+            }).join('');
+        }
+
+        function updateNextButtonStep2() {
+            const nextButton = getElement('step-2-next');
+            const canProceed = appState.selectedFormat.length > 0;
+            nextButton.disabled = !canProceed;
+            nextButton.classList.toggle('disabled:opacity-50', !canProceed);
+            nextButton.classList.toggle('disabled:cursor-not-allowed', !canProceed);
+        }
+
+        // =========================================================================================
+        // GENERAL STEP & NAVIGATION FUNCTIONS (Original prot_1_5)
+        // =========================================================================================
+
+        function showStep(stepNumber) {
+            // Hide all steps
+            const allSteps = ['step-1', 'step-2', 'step-3', 'loading-screen', 'step-4', 'step-5'];
+            allSteps.forEach(id => {
+                const el = getElement(id);
+                if (el) el.classList.add('hidden');
+            });
+
+            // Show current step
+            const currentStepId = `step-${stepNumber}`;
+            const currentStepEl = getElement(currentStepId);
+            if (currentStepEl) {
+                currentStepEl.classList.remove('hidden');
+            }
+            
+            // Special handling for the first three steps which need rendering/updates
+            appState.currentStep = stepNumber;
+            if (stepNumber === 1) {
+                renderTopics(); 
+                updateSelectedTopicsDisplay();
+            } else if (stepNumber === 2) {
+                renderFormats(); 
+                updateSelectedFormatsDisplay();
+            } else if (stepNumber === 3) {
+                updateLevel(getElement('cefr-slider').value);
+                // Ensure dropdown starts closed
+                getElement('cefr-full-description').classList.remove('open');
+                getElement('toggle-icon').textContent = '▼';
+            }
+        }
+        
+        // --- Step 3 Functions (Original prot_1_5 logic + FIX) ---
+
+        function getLevelData(sliderValue) {
+            const index = parseInt(sliderValue);
+            return CEFR_LEVELS[index] || CEFR_LEVELS[3]; 
+        }
+
+        function updateLevel(sliderValue) {
+            const data = getLevelData(sliderValue);
+            appState.cefrLevel = data.level;
+
+            getElement('current-level-display').textContent = data.level;
+            getElement('current-level-description').textContent = data.description;
+        }
+
+        function generateFullDescriptions() {
+            let html = '<ul class="list-disc pl-5 space-y-2">';
+            CEFR_LEVELS.forEach(levelData => {
+                html += `<li><strong class="text-indigo-600">${levelData.level} (${levelData.name}):</strong> ${levelData.description}</li>`;
+            });
+            html += '</ul>';
+            getElement('cefr-full-description').innerHTML = html;
+        }
+        
+        // FIX: Corrected function to perfectly toggle the dropdown
+        function toggleDescription() {
+            const descriptionEl = getElement('cefr-full-description');
+            const iconEl = getElement('toggle-icon');
+            const isOpen = descriptionEl.classList.contains('open');
+
+            if (isOpen) {
+                descriptionEl.classList.remove('open');
+                iconEl.textContent = '▼';
+            } else {
+                generateFullDescriptions(); // Ensure content is loaded before opening
+                descriptionEl.classList.add('open');
+                iconEl.textContent = '▲';
+            }
+        }
+
+
+        function startGeneration() {
+            showStep('loading-screen');
+            // Mock LLM call delay
+            setTimeout(() => {
+                generateAssignments();
+            }, 1500);
+        }
+
+        // --- Step 4/5 Functions (Major FIXES implemented) ---
+        
+        function generateAssignments() {
+            getElement('loading-message').textContent = 'Searching for appropriate assignments...';
+            
+            // 1. Determine the highest priority Topic
+            const topTopicId = appState.selectedTopics[0];
+            let topicKey;
+            if (topTopicId === 'custom-file-topic') {
+                topicKey = 'Custom File Content';
+            } else if (topTopicId === 'search-input-topic') {
+                 topicKey = `Search Term: ${appState.searchInput}`;
+            } else {
+                topicKey = topics.find(t => t.id === topTopicId)?.name || 'General Knowledge';
+            }
+
+            // 2. Map selected format IDs to their types in order of priority
+            const selectedTypesInOrder = appState.selectedFormat.map(id => {
+                return formats.find(f => f.id === id)?.type;
+            }).filter(type => type);
+
+            // 3. Find assignments matching the selected level (and prioritizing the topic)
+            let assignments = [];
+            
+            selectedTypesInOrder.forEach(type => {
+                // Try to find a specific assignment matching type, level, AND topic
+                let assignment = MOCK_ASSIGNMENT_POOL.find(a => 
+                    a.level === appState.cefrLevel && 
+                    a.assignmentType === type && 
+                    a.topicKey === topicKey
+                );
+
+                // If no specific assignment is found, find any assignment matching type and level
+                if (!assignment) {
+                    assignment = MOCK_ASSIGNMENT_POOL.find(a => 
+                        a.level === appState.cefrLevel && 
+                        a.assignmentType === type
+                    );
+                }
+                
+                if (assignment) {
+                    // Add to the list, keeping the order of the selectedFormat
+                    assignments.push({ ...assignment, priorityTopic: topicKey });
+                }
+            });
+            
+            appState.generatedAssignments = assignments;
+
+            // Update displays
+            getElement('final-topic-display').textContent = topicKey;
+            getElement('final-level-display').textContent = appState.cefrLevel;
+            
+            if (assignments.length === 0) {
+                getElement('assignments-workspace').classList.add('hidden');
+                getElement('no-assignments-message').classList.remove('hidden');
+                getElement('submit-assignments').classList.add('hidden');
+            } else {
+                renderAssignments(assignments);
+                getElement('assignments-workspace').classList.remove('hidden');
+                getElement('no-assignments-message').classList.add('hidden');
+                getElement('submit-assignments').classList.remove('hidden');
+            }
+
+            getElement('loading-message').textContent = 'Assignments generated successfully!';
+            showStep(4);
+        }
+
+        function renderAssignments(assignments) {
+            const sidebarColors = ['block-order-1', 'block-order-2', 'block-order-3']; // FIX: Custom classes for required colors
+            
+            let html = assignments.map((a, index) => {
+                const colorClass = sidebarColors[index % 3]; // Cycles through the 3 colors
+                const assignmentID = `assignment-${index}`;
+                
+                let contentHtml = '';
+                if (a.assignmentType === 'WritingPrompt') {
+                    contentHtml = `
+                        <p class="text-gray-700 font-medium mb-3">${a.promptOrInstructions}</p>
+                        <p class="text-sm italic text-gray-500 mb-4">Focus: ${a.contentDetail}</p>
+                        <textarea id="${assignmentID}-answer" data-type="WritingPrompt" class="input-style" rows="8" placeholder="Start writing your essay or story here..."></textarea>
+                    `;
+                } else if (a.assignmentType === 'GrammarPractice') {
+                    contentHtml = `
+                        <p class="text-gray-700 font-medium mb-4">${a.promptOrInstructions}</p>
+                        <div class="space-y-4">
+                            ${a.contentDetail.split('\n').map((sentence, sIndex) => {
+                                const parts = sentence.split('___');
+                                if (parts.length > 1) {
+                                    return `
+                                        <div class="flex items-center space-x-2">
+                                            <span class="text-gray-700">${parts[0]}</span>
+                                            <input type="text" id="${assignmentID}-answer-${sIndex}" data-type="GrammarPractice" class="grammar-input flex-1 max-w-xs" placeholder="Answer" value="">
+                                            <span class="text-gray-700">${parts[1]}</span>
+                                        </div>
+                                    `;
+                                }
+                                return `<p class="text-gray-700">${sentence}</p>`;
+                            }).join('')}
+                        </div>
+                    `;
+                } else if (a.assignmentType === 'VocabularyWords') {
+                    contentHtml = `
+                        <p class="text-gray-700 font-medium mb-4">${a.promptOrInstructions}</p>
+                        <div class="space-y-4">
+                            ${a.contentDetail.split('\n').map((item, vIndex) => {
+                                return `
+                                    <p class="font-semibold">${item}</p>
+                                    <textarea id="${assignmentID}-answer-${vIndex}" data-type="VocabularyWords" class="input-style" rows="2" placeholder="Write your sentence using the word..."></textarea>
+                                `;
+                            }).join('')}
+                        </div>
+                    `;
+                } else if (a.assignmentType === 'MultipleChoice') {
+                     contentHtml = `
+                        <p class="text-gray-700 font-medium mb-4">${a.promptOrInstructions}</p>
+                        <div class="space-y-4">
+                            ${a.contentDetail.map((mc, mcIndex) => `
+                                <div class="p-3 border rounded-lg bg-gray-50">
+                                    <p class="font-medium mb-2">${mc.question}</p>
+                                    ${mc.options.map(option => `
+                                        <label class="block">
+                                            <input type="radio" name="${assignmentID}-mc-${mcIndex}" value="${option}" data-type="MultipleChoice" class="mr-2">
+                                            ${option}
+                                        </label>
+                                    `).join('')}
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+                
+                // FIX: Assignment presentation order (Type - Description)
+                return `
+                    <div class="assignment-block ${colorClass}">
+                        <h3 class="text-2xl font-bold mb-3">${formatTypeToName(a.assignmentType)} - <span class="text-lg font-medium text-gray-500">${a.generatedTitle}</span></h3>
+                        ${contentHtml}
+                    </div>
+                `;
+            }).join('');
+            
+            getElement('assignments-workspace').innerHTML = html;
+        }
+
+        function submitAssignments() {
+            // Collect all answers before showing feedback
+            const submission = [];
+            appState.generatedAssignments.forEach((assignment, aIndex) => {
+                const results = {
+                    assignmentID: assignment.assignmentID,
+                    assignmentType: assignment.assignmentType,
+                    title: assignment.generatedTitle,
+                    original: assignment.contentDetail,
+                    studentAnswer: '',
+                    isCorrect: true,
+                    feedback: ''
+                };
+
+                if (assignment.assignmentType === 'WritingPrompt') {
+                    const textarea = getElement(`assignment-${aIndex}-answer`);
+                    results.studentAnswer = textarea ? textarea.value : '[No Answer Provided]';
+                    // Mock evaluation for writing: check length
+                    if (results.studentAnswer.length < 50) {
+                        results.isCorrect = false;
+                        results.feedback = "The response is too brief. Please develop your argument further.";
+                    } else {
+                        results.feedback = "Well-developed argument. Good use of linking words.";
+                    }
+
+                } else if (assignment.assignmentType === 'GrammarPractice') {
+                    const answers = [];
+                    let correctCount = 0;
+                    assignment.correctAnswers.forEach((correct, sIndex) => {
+                        const input = getElement(`assignment-${aIndex}-answer-${sIndex}`);
+                        const studentAns = input ? input.value.trim().toLowerCase() : '';
+                        answers.push(studentAns);
+                        if (studentAns === correct.toLowerCase()) correctCount++;
+                    });
+                    
+                    results.studentAnswer = answers.join(', ');
+                    results.isCorrect = correctCount === assignment.correctAnswers.length;
+                    results.feedback = results.isCorrect ? "Perfect! All grammar points correctly addressed." : `You correctly answered ${correctCount} out of ${assignment.correctAnswers.length}.`;
+                    results.correctAnswers = assignment.correctAnswers;
+
+                } else if (assignment.assignmentType === 'VocabularyWords') {
+                    const answers = [];
+                    assignment.contentDetail.split('\n').forEach((item, vIndex) => {
+                        const textarea = getElement(`assignment-${aIndex}-answer-${vIndex}`);
+                        answers.push(textarea ? textarea.value : '');
+                    });
+                    results.studentAnswer = answers.filter(a => a).join(' | ');
+                    // Mock evaluation for vocabulary: check if all answers are present
+                    if (answers.filter(a => a).length < assignment.contentDetail.split('\n').length) {
+                        results.isCorrect = false;
+                        results.feedback = "Ensure you provide a sentence for every vocabulary word.";
+                    } else {
+                        results.feedback = "All words used in context. Good job!";
+                    }
+                }
+
+                submission.push(results);
+            });
+            
+            appState.submissionResults = submission;
+            renderFeedback(submission);
+            showStep(5);
+        }
+
+        function renderFeedback(submission) {
+            const selectedTopicName = getElement('final-topic-display').textContent;
+
+            // Update feedback header
+            getElement('feedback-topic-display').textContent = selectedTopicName;
+            getElement('feedback-level-display').textContent = appState.cefrLevel;
+
+            let feedbackHtml = `
+                <div class="p-6 bg-green-50 rounded-xl border border-green-200">
+                    <h3 class="text-2xl font-bold text-green-700 mb-3">Excellent Submission!</h3>
+                    <p class="text-lg text-gray-700">The language model has successfully evaluated your work and generated personalized feedback.</p>
+                </div>
+                <div class="space-y-6">
+            `;
+
+            submission.forEach((result, rIndex) => {
+                const typeName = formatTypeToName(result.assignmentType);
+                const colorClass = result.isCorrect ? 'border-green-500 bg-white shadow' : 'border-red-500 bg-red-50 shadow';
+                const correctnessIcon = result.isCorrect ? '✅' : '❌';
+                
+                let studentAnswerDisplay = '';
+
+                if (result.assignmentType === 'WritingPrompt' || result.assignmentType === 'VocabularyWords') {
+                    studentAnswerDisplay = `<textarea class="input-style bg-gray-100 mt-2" rows="5" readonly>${result.studentAnswer}</textarea>`;
+                } else if (result.assignmentType === 'GrammarPractice') {
+                     studentAnswerDisplay = `
+                        <p class="text-gray-700 font-medium mb-2">Your Answers: <span class="${result.isCorrect ? 'text-green-600' : 'text-red-600'} font-bold">${result.studentAnswer}</span></p>
+                        ${!result.isCorrect ? `<p class="text-sm text-gray-500">Correct Answers: <span class="text-green-600 font-bold">${result.correctAnswers.join(', ')}</span></p>` : ''}
+                    `;
+                }
+
+                feedbackHtml += `
+                    <div class="p-6 border-l-4 ${colorClass}">
+                        <h4 class="text-xl font-semibold mb-3">${correctnessIcon} ${typeName} - ${result.title}</h4>
+                        <div class="border-b pb-3 mb-3">
+                            <p class="text-sm font-medium text-gray-700 mb-1">Your Submission:</p>
+                            ${studentAnswerDisplay}
+                        </div>
+                        <p class="text-md font-medium text-gray-700 mb-2">Model Feedback:</p>
+                        <p class="text-gray-600 italic">"${result.feedback}"</p>
+                    </div>`;
+            });
+
+            feedbackHtml += `</div>
+                <div class="mt-8 p-6 bg-indigo-50 rounded-xl border border-indigo-200">
+                    <h4 class="text-xl font-bold text-indigo-700 mb-3">Next Steps</h4>
+                    <p class="text-gray-700">Based on your performance, the model suggests a similar assignment at a slightly higher level (${appState.cefrLevel}+) next time to help you progress!</p>
+                </div>
+            `;
+            
+            getElement('feedback-content').innerHTML = feedbackHtml;
+        }
+
+        // =========================================================================================
+        // INITIALIZATION
+        // =========================================================================================
+
+        function init() {
+            // Set up Step 1 listeners 
+            getElement('customFileUpload').addEventListener('change', handleCustomFile);
+            searchInputEl.addEventListener('input', (event) => handleSearchInput(event.target.value));
+            filterSelect.addEventListener('change', renderTopics);
+            getElement('step-1-next').addEventListener('click', () => showStep(2));
+            
+            // Set up Step 2 listeners 
+            getElement('step-2-back').addEventListener('click', () => showStep(1));
+            getElement('step-2-next').addEventListener('click', () => {
+                showStep(3); 
+            });
+            
+            // Set up Step 3 listeners
+            const slider = getElement('cefr-slider');
+            slider.addEventListener('input', (event) => updateLevel(event.target.value));
+            getElement('description-toggle-header').addEventListener('click', toggleDescription);
+            getElement('step-3-back').addEventListener('click', () => showStep(2));
+            getElement('step-3-next-generate').addEventListener('click', startGeneration);
+
+            // Set up Step 4 listeners
+            getElement('step-4-back-to-prev').addEventListener('click', () => showStep(3));
+            getElement('step-4-back-to-start').addEventListener('click', () => showStep(1));
+            getElement('submit-assignments').addEventListener('click', submitAssignments);
+
+            // Set up Step 5 listeners
+            getElement('step-5-back-to-prev').addEventListener('click', () => showStep(4));
+            // FIX: "Finish & Restart" button logic
+            getElement('step-5-back-to-start').addEventListener('click', () => {
+                location.reload(); // Simplest way to restart the prototype state
+            });
+
+
+            // Initial state setup
+            updateLevel(slider.value); 
+            showStep(1); // Start at Step 1
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
